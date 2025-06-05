@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "TransHougen",
+    "slug": "transhougen",
+    "version": "1.0.0",
+    "orientation": "default",
+    "platforms": ["ios", "android", "web"],
+    "sdkVersion": "50.0.0",
+    "jsEngine": "hermes",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
