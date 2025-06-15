@@ -1,13 +1,26 @@
-const functions = require("firebase-functions");
-const cors = require("cors")({ origin: true });
-const OpenAI = require("openai");
+// functions/index.js
 
-// 環境変数から OpenAI API キーを取得してクライアントを生成
-const openai = new OpenAI({
-  apiKey: functions.config().openai.key,
-});
+// v1 SDK から config() を読むために import
+const functionsV1 = require("firebase-functions");
+const { onRequest } = require("firebase-functions/v2/https");
+const logger       = require("firebase-functions/logger");
+const cors         = require("cors")({ origin: true });
+const OpenAI       = require("openai");
 
-exports.dialectConverter = functions.https.onRequest(async (req, res) => {
+// 環境変数 or Firebase config のどちらかからキー取得
+const apiKey =
+  process.env.OPENAI_API_KEY ||
+  functionsV1.config().openai.key;
+
+if (!apiKey) {
+  throw new Error(
+    "OpenAI API key is missing. Set OPENAI_API_KEY or firebase functions:config."
+  );
+}
+
+const openai = new OpenAI({ apiKey });
+
+exports.dialectConverter = onRequest(async (req, res) => {
   cors(req, res, async () => {
     try {
       const { text } = req.body;
@@ -15,7 +28,6 @@ exports.dialectConverter = functions.https.onRequest(async (req, res) => {
         return res.status(400).json({ error: "テキストを指定してください" });
       }
 
-      // v4 用の呼び出し
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
@@ -24,19 +36,17 @@ exports.dialectConverter = functions.https.onRequest(async (req, res) => {
             content:
               "あなたは方言変換アシスタントです。入力されたテキストを標準語に変換してください。",
           },
-          {
-            role: "user",
-            content: text,
-          },
+          { role: "user", content: text },
         ],
         temperature: 0.7,
       });
 
-      const converted = completion.choices[0].message.content;
-      return res.status(200).json({ result: converted });
-    } catch (error) {
-      console.error("Error in dialectConverter:", error);
-      return res.status(500).json({ error: error.message });
+      return res.status(200).json({
+        result: completion.choices[0].message.content,
+      });
+    } catch (e) {
+      logger.error("Error in dialectConverter:", e);
+      return res.status(500).json({ error: e.message });
     }
   });
 });
