@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import {
-  StyleSheet,
-  TextInput,
-  Button,
-  ScrollView,
-  View,
-  Text,
-  ActivityIndicator,
-  useColorScheme,
+　StyleSheet,
+　TextInput,
+　Button,
+　ScrollView,
+　View,
+　Text,
+　useColorScheme,
+　Platform,
 } from 'react-native';
 
 const VStack: React.FC<{ children: React.ReactNode; style?: any }> = ({
