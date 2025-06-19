@@ -4,10 +4,12 @@
     "slug": "transhougen",
     "version": "1.0.0",
     "orientation": "default",
-    "platforms": ["ios", "android", "web"],
-    "sdkVersion": "50.0.0",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "jsEngine": "hermes",
-    "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/splash.png",
@@ -17,7 +19,9 @@
     "updates": {
       "fallbackToCacheTimeout": 0
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true
     },

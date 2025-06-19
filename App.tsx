@@ -1,19 +1,17 @@
+// App.tsx
 import React, { useState } from 'react';
 import {
-　StyleSheet,
-　TextInput,
-　Button,
-　ScrollView,
-　View,
-　Text,
-　useColorScheme,
-　Platform,
+  StyleSheet,
+  TextInput,
+  Button,
+  ScrollView,
+  View,
+  Text,
+  ActivityIndicator,
+  useColorScheme,
 } from 'react-native';
 
-const VStack: React.FC<{ children: React.ReactNode; style?: any }> = ({
-  children,
-  style,
-}) => (
+const VStack: React.FC<{ children: React.ReactNode; style?: any }> = ({ children, style }) => (
   <View style={[{ flexDirection: 'column', alignItems: 'stretch' }, style]}>
     {children}
   </View>
@@ -21,16 +19,17 @@ const VStack: React.FC<{ children: React.ReactNode; style?: any }> = ({
 
 export default function App() {
   const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
   const [input, setInput] = useState('');
   const [converted, setConverted] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleConvert = async () => {
-    if (!input.trim()) return;
     setLoading(true);
     setConverted('');
     try {
-      const response = await fetch(
+      const res = await fetch(
         'https://us-central1-transhougen.cloudfunctions.net/dialectConverter',
         {
           method: 'POST',
@@ -38,38 +37,43 @@ export default function App() {
           body: JSON.stringify({ text: input }),
         }
       );
-      const data = await response.json();
-      // ← ここを data.result に変更！
-      setConverted(data.result ?? '（変換結果がありません）');
-    } catch (e) {
+      const json = await res.json();
+      setConverted(json.result || '変換結果がありません');
+    } catch (err) {
       setConverted('エラーが発生しました');
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  const isDark = colorScheme === 'dark';
-
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#181818' : '#fff' }]}>
+    <View style={[styles.container, { backgroundColor: isDark ? '#181818' : '#ffffff' }]}>
       <VStack style={styles.vStack}>
-        <Text style={[styles.title, { color: isDark ? '#fff' : '#222' }]}>
-          TransHougen
-        </Text>
+        <Text style={[styles.title, { color: isDark ? '#fff' : '#222' }]}>TransHougen</Text>
+
         <TextInput
-          style={[styles.input, { backgroundColor: isDark ? '#222' : '#eee', color: isDark ? '#fff' : '#000' }]}
-          placeholder="方言を入力"
+          style={[
+            styles.input,
+            { backgroundColor: isDark ? '#222' : '#eee', color: isDark ? '#fff' : '#000' },
+          ]}
+          placeholder="変換したいテキストを入力"
           placeholderTextColor={isDark ? '#aaa' : '#888'}
           value={input}
           onChangeText={setInput}
           editable={!loading}
         />
-        <Button title={loading ? '変換中…' : '変換する'} onPress={handleConvert} disabled={loading || !input.trim()} />
-        {loading && <ActivityIndicator style={{ margin: 16 }} size="large" />}
-        <ScrollView style={styles.scrollView} contentContainerStyle={{ padding: 12 }}>
-          <Text style={{ color: isDark ? '#fff' : '#222', fontSize: 18 }}>
-            {converted}
-          </Text>
+
+        <Button
+          title={loading ? '変換中…' : '変換'}
+          onPress={handleConvert}
+          disabled={loading || !input.trim()}
+        />
+
+        {loading && <ActivityIndicator style={{ marginTop: 16 }} size="large" />}
+
+        <ScrollView style={styles.resultContainer} contentContainerStyle={{ padding: 12 }}>
+          <Text style={{ color: isDark ? '#fff' : '#222', fontSize: 18 }}>{converted}</Text>
         </ScrollView>
       </VStack>
     </View>
@@ -79,20 +83,15 @@ export default function App() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
   vStack: { flex: 1 },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 16 },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 16, textAlign: 'center' },
   input: {
-    height: 44,
+    height: 40,
     borderColor: '#888',
     borderWidth: 1,
-    paddingHorizontal: 12,
+    borderRadius: 4,
+    paddingHorizontal: 8,
     marginBottom: 12,
-    borderRadius: 6,
   },
-  scrollView: {
-    flex: 1,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 6,
-  },
+  resultContainer: { flex: 1, marginTop: 16 },
 });
 
