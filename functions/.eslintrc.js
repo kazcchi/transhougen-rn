@@ -1,10 +1,11 @@
+// functions/.eslintrc.js
 module.exports = {
   env: {
     es6: true,
     node: true,
   },
   parserOptions: {
-    "ecmaVersion": 2018,
+    ecmaVersion: 2018,
   },
   extends: [
     "eslint:recommended",
@@ -14,6 +15,7 @@ module.exports = {
     "no-restricted-globals": ["error", "name", "length"],
     "prefer-arrow-callback": "error",
     "quotes": ["error", "double", {"allowTemplateLiterals": true}],
+    "max-len": "off",
   },
   overrides: [
     {
@@ -26,3 +28,4 @@ module.exports = {
   ],
   globals: {},
 };
+
