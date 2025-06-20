@@ -1,5 +1,5 @@
 // App.tsx
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   StyleSheet,
   TextInput,
@@ -7,73 +7,93 @@ import {
   ScrollView,
   View,
   Text,
-  ActivityIndicator,
   useColorScheme,
-} from 'react-native';
+  Platform,
+} from "react-native";
 
-const VStack: React.FC<{ children: React.ReactNode; style?: any }> = ({ children, style }) => (
-  <View style={[{ flexDirection: 'column', alignItems: 'stretch' }, style]}>
+// Web ではダミー、それ以外はネイティブの ActivityIndicator を使う
+const ActivityIndicator =
+  Platform.OS === "web"
+    ? () => null
+    : require("react-native").ActivityIndicator;
+
+const VStack: React.FC<{ children: React.ReactNode; style?: any }> = ({
+  children,
+  style,
+}) => (
+  <View style={[{ flexDirection: "column", alignItems: "stretch" }, style]}>
     {children}
   </View>
 );
 
 export default function App() {
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const isDark = colorScheme === "dark";
 
-  const [input, setInput] = useState('');
-  const [converted, setConverted] = useState('');
+  const [input, setInput] = useState("");
+  const [converted, setConverted] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleConvert = async () => {
+    if (!input.trim()) return;
     setLoading(true);
-    setConverted('');
+    setConverted("");
     try {
       const res = await fetch(
-        'https://us-central1-transhougen.cloudfunctions.net/dialectConverter',
+        "https://us-central1-transhougen.cloudfunctions.net/dialectConverter",
         {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text: input }),
         }
       );
-      const json = await res.json();
-      setConverted(json.result || '変換結果がありません');
-    } catch (err) {
-      setConverted('エラーが発生しました');
-      console.error(err);
+      const data = await res.json();
+      setConverted(data.result ?? "");
+    } catch {
+      setConverted("エラーが発生しました");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#181818' : '#ffffff' }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: isDark ? "#181818" : "#ffffff" },
+      ]}
+    >
       <VStack style={styles.vStack}>
-        <Text style={[styles.title, { color: isDark ? '#fff' : '#222' }]}>TransHougen</Text>
-
+        <Text style={[styles.title, { color: isDark ? "#fff" : "#222" }]}>
+          TransHougen
+        </Text>
         <TextInput
           style={[
             styles.input,
-            { backgroundColor: isDark ? '#222' : '#eee', color: isDark ? '#fff' : '#000' },
+            {
+              backgroundColor: isDark ? "#222" : "#eee",
+              color: isDark ? "#fff" : "#000",
+            },
           ]}
-          placeholder="変換したいテキストを入力"
-          placeholderTextColor={isDark ? '#aaa' : '#888'}
+          placeholder="方言を入力"
+          placeholderTextColor={isDark ? "#aaa" : "#888"}
           value={input}
           onChangeText={setInput}
           editable={!loading}
         />
-
         <Button
-          title={loading ? '変換中…' : '変換'}
+          title={loading ? "変換中…" : "変換"}
           onPress={handleConvert}
           disabled={loading || !input.trim()}
         />
-
         {loading && <ActivityIndicator style={{ marginTop: 16 }} size="large" />}
-
-        <ScrollView style={styles.resultContainer} contentContainerStyle={{ padding: 12 }}>
-          <Text style={{ color: isDark ? '#fff' : '#222', fontSize: 18 }}>{converted}</Text>
+        <ScrollView
+          style={styles.resultContainer}
+          contentContainerStyle={{ padding: 12 }}
+        >
+          <Text style={{ color: isDark ? "#fff" : "#222", fontSize: 18 }}>
+            {converted}
+          </Text>
         </ScrollView>
       </VStack>
     </View>
@@ -83,10 +103,10 @@ export default function App() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
   vStack: { flex: 1 },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 16, textAlign: 'center' },
+  title: { fontSize: 24, fontWeight: "bold", marginBottom: 16, textAlign: "center" },
   input: {
     height: 40,
-    borderColor: '#888',
+    borderColor: "#888",
     borderWidth: 1,
     borderRadius: 4,
     paddingHorizontal: 8,
