@@ -1,6 +1,11 @@
 # macOS
 .DS_Store
 
+# Build artifacts / caches（Vercel・EAS等が生成するため追跡しない）
+dist/
+web-build/
+.expo/
+
 # Logs
 logs
 *.log
