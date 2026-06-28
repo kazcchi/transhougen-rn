@@ -326,7 +326,7 @@ export default function App() {
           <>
             {/* 方言→標準語：地方ヒント（任意・おまかせ可） */}
             <Text style={[styles.sectionLabel, { color: c.subText }]}>
-              地方（任意・迷ったらおまかせ）
+              地方（任意・選択したら精度が上がります）
             </Text>
             <ScrollView
               horizontal
