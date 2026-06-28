@@ -5,6 +5,8 @@ const {defineSecret} = require("firebase-functions/params");
 const logger = require("firebase-functions/logger");
 const cors = require("cors")({origin: true});
 const OpenAI = require("openai");
+const {toFile} = require("openai");
+const busboy = require("busboy");
 
 // OpenAI APIキーは Secret Manager で管理する（config() は廃止済み）
 // 登録: firebase functions:secrets:set OPENAI_API_KEY
@@ -62,14 +64,32 @@ const DIALECTS = {
 };
 const DEFAULT_DIALECT = "大阪弁";
 
+// 方言→標準語 で任意に渡せる地方ヒント（粗い8区分）。
+// 同綴異義語（例:「なおす」「えらい」）の解釈を地方で補正するためのもの。
+// "auto" もしくはリスト外なら自動判別。
+const REGIONS = [
+  "北海道",
+  "東北",
+  "関東",
+  "中部",
+  "近畿",
+  "中国",
+  "四国",
+  "九州",
+];
+
+// 音声文字起こしの上限（コスト防御）
+const MAX_AUDIO_BYTES = 2 * 1024 * 1024; // 約2MB（m4aで概ね30秒前後）
+
 /**
  * 変換方向と方言/文体からシステムプロンプトを組み立てる。
  * @param {string} direction "to_dialect"（標準語→方言）または
  *   "to_standard"（方言→標準語）
  * @param {string} dialect 対象の方言/文体名
+ * @param {string} [region] 方言→標準語のときの任意の地方ヒント
  * @return {string} OpenAI に渡すシステムプロンプト
  */
-function buildSystemPrompt(direction, dialect) {
+function buildSystemPrompt(direction, dialect, region) {
   const meta = DIALECTS[dialect] || {type: "dialect"};
   const hint = meta.hint ? `（${meta.hint}）` : "";
 
@@ -92,10 +112,14 @@ function buildSystemPrompt(direction, dialect) {
     ].join("");
   }
   // to_standard（方言/文体 → 標準語）
+  // 方言は指定不要。任意の地方ヒントがあれば解釈を補正する。
+  const regionHint = REGIONS.includes(region) ?
+    `特に${region}地方の方言として解釈し、` :
+    "";
   return [
     "あなたは日本語変換の専門家です。",
-    `入力された${dialect}（その他の方言や独特の話し方が混ざっていても可）の`,
-    "文章を、意味を保ったまま自然な標準語に変換してください。",
+    "入力された文章には方言や独特の言い回しが混ざっていることがあります。",
+    `${regionHint}意味やニュアンスを保ったまま自然な標準語に変換してください。`,
     "変換後の文章のみを出力し、解説や注釈は付けないでください。",
   ].join("");
 }
@@ -115,6 +139,61 @@ function isRateLimited(ip) {
   return recent.length > RATE_LIMIT_MAX;
 }
 
+/**
+ * リクエストからクライアントIPを取り出す。
+ * @param {object} req Express リクエスト
+ * @return {string} クライアントIP
+ */
+function getClientIp(req) {
+  return (
+    (req.headers["x-forwarded-for"] || "").split(",")[0].trim() ||
+    req.ip ||
+    "unknown"
+  );
+}
+
+/**
+ * multipart/form-data から音声ファイルを1つ取り出す。
+ * 上限を超えたら中断してエラーにする。
+ * @param {object} req Express リクエスト（req.rawBody に本文）
+ * @return {Promise<{buffer: Buffer, filename: string, mimeType: string}>}
+ */
+function parseAudioUpload(req) {
+  return new Promise((resolve, reject) => {
+    const bb = busboy({
+      headers: req.headers,
+      limits: {files: 1, fileSize: MAX_AUDIO_BYTES},
+    });
+    let fileInfo = null;
+    const chunks = [];
+    let tooLarge = false;
+
+    bb.on("file", (_name, stream, info) => {
+      fileInfo = info;
+      stream.on("data", (d) => chunks.push(d));
+      stream.on("limit", () => {
+        tooLarge = true;
+        stream.resume();
+      });
+    });
+    bb.on("error", reject);
+    bb.on("finish", () => {
+      if (tooLarge) {
+        return reject(new Error("AUDIO_TOO_LARGE"));
+      }
+      if (!fileInfo || chunks.length === 0) {
+        return reject(new Error("NO_AUDIO"));
+      }
+      resolve({
+        buffer: Buffer.concat(chunks),
+        filename: fileInfo.filename || "audio.m4a",
+        mimeType: fileInfo.mimeType || "audio/m4a",
+      });
+    });
+    bb.end(req.rawBody);
+  });
+}
+
 // Gen 2（v2）方式の HTTP トリガー
 exports.dialectConverter = onRequest(
     {region: "us-central1", secrets: [openaiApiKey]},
@@ -126,10 +205,7 @@ exports.dialectConverter = onRequest(
           const openai = new OpenAI({apiKey: openaiApiKey.value()});
 
           // --- レート制限 ---
-          const ip =
-            (req.headers["x-forwarded-for"] || "").split(",")[0].trim() ||
-            req.ip ||
-            "unknown";
+          const ip = getClientIp(req);
           if (isRateLimited(ip)) {
             logger.warn("Rate limit exceeded", {ip});
             return res.status(429).json({
@@ -138,7 +214,7 @@ exports.dialectConverter = onRequest(
           }
 
           // --- 入力バリデーション ---
-          const {text, direction, dialect} = req.body || {};
+          const {text, direction, dialect, region} = req.body || {};
           if (!text || typeof text !== "string" || !text.trim()) {
             return res
                 .status(400)
@@ -165,7 +241,7 @@ exports.dialectConverter = onRequest(
             messages: [
               {
                 role: "system",
-                content: buildSystemPrompt(dir, selectedDialect),
+                content: buildSystemPrompt(dir, selectedDialect, region),
               },
               {role: "user", content: text},
             ],
@@ -177,6 +253,61 @@ exports.dialectConverter = onRequest(
           });
         } catch (e) {
           logger.error("Error in dialectConverter:", e);
+          return res.status(500).json({error: e.message});
+        }
+      });
+    },
+);
+
+// 音声文字起こし（方言→標準語の音声入力用）。
+// multipart/form-data で "audio" フィールドに音声を受け取り、
+// Whisper 系モデルで日本語テキストに起こして返す。
+// 文字起こしと変換は分離し、ユーザーが誤認識を修正できるようにする。
+exports.transcribeAudio = onRequest(
+    {region: "us-central1", secrets: [openaiApiKey]},
+    async (req, res) => {
+      cors(req, res, async () => {
+        try {
+          if (req.method !== "POST") {
+            return res.status(405).json({error: "POSTメソッドを使用してください"});
+          }
+
+          // --- レート制限（変換と同じストアを共用）---
+          const ip = getClientIp(req);
+          if (isRateLimited(ip)) {
+            logger.warn("Rate limit exceeded (transcribe)", {ip});
+            return res.status(429).json({
+              error: "リクエストが多すぎます。しばらくしてからお試しください。",
+            });
+          }
+
+          // --- 音声の取り出し ---
+          let audio;
+          try {
+            audio = await parseAudioUpload(req);
+          } catch (err) {
+            if (err.message === "AUDIO_TOO_LARGE") {
+              return res.status(413).json({
+                error: "録音が長すぎます。30秒以内で録音してください。",
+              });
+            }
+            return res.status(400).json({error: "音声を受け取れませんでした"});
+          }
+
+          // --- Whisper で文字起こし ---
+          const openai = new OpenAI({apiKey: openaiApiKey.value()});
+          const file = await toFile(audio.buffer, audio.filename, {
+            type: audio.mimeType,
+          });
+          const transcription = await openai.audio.transcriptions.create({
+            file,
+            model: "gpt-4o-mini-transcribe",
+            language: "ja",
+          });
+
+          return res.status(200).json({text: transcription.text || ""});
+        } catch (e) {
+          logger.error("Error in transcribeAudio:", e);
           return res.status(500).json({error: e.message});
         }
       });

@@ -19,8 +19,14 @@
     ],
     "ios": {
       "supportsTablet": true
-    }
-    // ※ "splash" と "web" の参照はすべて削除
+    },
+    "plugins": [
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "方言の音声入力（文字起こし）にマイクを使用します。"
+        }
+      ]
+    ]
   }
 }
-
