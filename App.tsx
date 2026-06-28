@@ -502,12 +502,13 @@ function SegmentButton({
       onPress={onPress}
       style={[
         styles.segBtn,
-        active && { backgroundColor: c.card, ...shadow },
+        // 選択中は地方チップと同じアクセントカラーで塗ってはっきり示す
+        active && { backgroundColor: c.accent, ...shadow },
       ]}
     >
       <Text
         style={{
-          color: active ? c.text : c.subText,
+          color: active ? c.accentText : c.subText,
           fontWeight: active ? "700" : "500",
           fontSize: 14,
         }}
