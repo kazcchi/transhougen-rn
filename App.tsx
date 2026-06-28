@@ -1,5 +1,5 @@
 // App.tsx
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   StyleSheet,
   TextInput,
@@ -117,6 +117,21 @@ export default function App() {
   const [transcribing, setTranscribing] = useState(false);
 
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+
+  // 変換結果が出たら結果カードまで自動スクロールする
+  const scrollRef = useRef<ScrollView>(null);
+  const resultY = useRef(0);
+  useEffect(() => {
+    if (!converted && !error) return;
+    // レイアウト確定後にスクロール
+    const id = setTimeout(() => {
+      scrollRef.current?.scrollTo({
+        y: Math.max(resultY.current - 16, 0),
+        animated: true,
+      });
+    }, 50);
+    return () => clearTimeout(id);
+  }, [converted, error]);
 
   const handleConvert = async () => {
     if (!input.trim() || loading) return;
@@ -250,6 +265,7 @@ export default function App() {
     <View style={[styles.screen, { backgroundColor: c.bg }]}>
       <StatusBar barStyle={scheme === "dark" ? "light-content" : "dark-content"} />
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
@@ -455,7 +471,12 @@ export default function App() {
 
         {/* 結果カード */}
         {(converted || error) && (
-          <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}>
+          <View
+            onLayout={(e) => {
+              resultY.current = e.nativeEvent.layout.y;
+            }}
+            style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}
+          >
             <View style={styles.cardHeader}>
               <Text style={[styles.cardLabel, { color: c.subText }]}>
                 {error ? "エラー" : resultLabel}
