@@ -109,7 +109,7 @@ export default function App() {
   const [converted, setConverted] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [direction, setDirection] = useState<Direction>("to_dialect");
+  const [direction, setDirection] = useState<Direction>("to_standard");
   const [dialect, setDialect] = useState<string>(MAIN_DIALECTS[6]); // 大阪弁
   const [region, setRegion] = useState<string>(REGION_AUTO);
   const [copied, setCopied] = useState(false);
@@ -264,15 +264,15 @@ export default function App() {
         {/* 方向セグメント */}
         <View style={[styles.segment, { backgroundColor: c.segBg }]}>
           <SegmentButton
-            label="標準語 → 方言"
-            active={direction === "to_dialect"}
-            onPress={() => setDirection("to_dialect")}
-            c={c}
-          />
-          <SegmentButton
             label="方言 → 標準語"
             active={direction === "to_standard"}
             onPress={() => setDirection("to_standard")}
+            c={c}
+          />
+          <SegmentButton
+            label="標準語 → 方言"
+            active={direction === "to_dialect"}
+            onPress={() => setDirection("to_dialect")}
             c={c}
           />
         </View>
@@ -407,9 +407,22 @@ export default function App() {
             </Pressable>
           )}
 
-          {input.length > 0 && (
-            <Pressable onPress={handleClear} style={styles.clearBtn} hitSlop={8}>
-              <Text style={{ color: c.subText, fontSize: 13 }}>クリア</Text>
+          {(input.length > 0 || converted || error) && (
+            <Pressable
+              onPress={handleClear}
+              style={({ pressed }) => [
+                styles.clearBtn,
+                {
+                  borderColor: c.border,
+                  backgroundColor: c.chipBg,
+                  opacity: pressed ? 0.85 : 1,
+                },
+              ]}
+              hitSlop={8}
+            >
+              <Text style={{ color: c.chipText, fontSize: 13, fontWeight: "600" }}>
+                クリア
+              </Text>
             </Pressable>
           )}
         </View>
@@ -619,7 +632,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
   },
-  clearBtn: { alignSelf: "flex-end", marginTop: 8, padding: 4 },
+  clearBtn: {
+    alignSelf: "flex-end",
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
   convertBtn: {
     marginTop: 20,
     height: 52,
