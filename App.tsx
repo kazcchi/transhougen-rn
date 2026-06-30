@@ -343,8 +343,8 @@ export default function App() {
         ) : (
           <>
             {/* 方言→標準語：地方ヒント（任意・おまかせ可） */}
-            <Text style={[styles.sectionLabel, { color: c.subText }]}>
-              地方（任意・選択したら精度が上がります）
+            <Text style={[styles.regionLabel, { color: c.subText }]}>
+              地方を選択したら精度が上がります
             </Text>
             <View style={styles.regionRow}>
               <DialectChip
@@ -629,6 +629,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   sectionLabel: { fontSize: 13, fontWeight: "600", marginBottom: 10 },
+  regionLabel: { fontSize: 16, fontWeight: "700", marginBottom: 10, width: "100%" },
   chipRow: { gap: 8, paddingBottom: 4, paddingRight: 4 },
   regionRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
   chip: {
