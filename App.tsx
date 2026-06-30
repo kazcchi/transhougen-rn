@@ -345,36 +345,40 @@ export default function App() {
             <Text style={[styles.sectionLabel, { color: c.subText }]}>
               地方（任意・選択したら精度が上がります）
             </Text>
-            <View style={styles.regionRow}>
+            <View style={styles.regionGrid}>
               <DialectChip
                 label="おまかせ"
                 selected={region === REGION_AUTO}
                 onPress={() => setRegion(REGION_AUTO)}
                 c={c}
-                style={styles.regionChip}
+                style={styles.regionTall}
               />
-              {REGIONS.slice(0, 3).map((r) => (
-                <DialectChip
-                  key={r}
-                  label={r}
-                  selected={r === region}
-                  onPress={() => setRegion(r)}
-                  c={c}
-                  style={styles.regionChip}
-                />
-              ))}
-            </View>
-            <View style={styles.regionRow}>
-              {REGIONS.slice(3).map((r) => (
-                <DialectChip
-                  key={r}
-                  label={r}
-                  selected={r === region}
-                  onPress={() => setRegion(r)}
-                  c={c}
-                  style={styles.regionChip}
-                />
-              ))}
+              <View style={styles.regionCol}>
+                <View style={styles.regionRow}>
+                  {REGIONS.slice(0, 4).map((r) => (
+                    <DialectChip
+                      key={r}
+                      label={r}
+                      selected={r === region}
+                      onPress={() => setRegion(r)}
+                      c={c}
+                      style={styles.regionChip}
+                    />
+                  ))}
+                </View>
+                <View style={styles.regionRow}>
+                  {REGIONS.slice(4).map((r) => (
+                    <DialectChip
+                      key={r}
+                      label={r}
+                      selected={r === region}
+                      onPress={() => setRegion(r)}
+                      c={c}
+                      style={styles.regionChip}
+                    />
+                  ))}
+                </View>
+              </View>
             </View>
           </>
         )}
@@ -629,7 +633,10 @@ const styles = StyleSheet.create({
   },
   sectionLabel: { fontSize: 13, fontWeight: "600", marginBottom: 10 },
   chipRow: { gap: 8, paddingBottom: 4, paddingRight: 4 },
-  regionRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
+  regionGrid: { flexDirection: "row", gap: 8, marginBottom: 8 },
+  regionCol: { flex: 4, gap: 8 },
+  regionRow: { flexDirection: "row", gap: 8, flex: 1 },
+  regionTall: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 4 },
   chip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -640,6 +647,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 4,
     alignItems: "center",
+    justifyContent: "center",
   },
   card: {
     borderRadius: 16,
