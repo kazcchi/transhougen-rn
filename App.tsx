@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   StatusBar,
 } from "react-native";
+import type { StyleProp, ViewStyle } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import {
   useAudioRecorder,
@@ -344,27 +345,37 @@ export default function App() {
             <Text style={[styles.sectionLabel, { color: c.subText }]}>
               地方（任意・選択したら精度が上がります）
             </Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.chipRow}
-            >
+            <View style={styles.regionRow}>
               <DialectChip
                 label="おまかせ"
                 selected={region === REGION_AUTO}
                 onPress={() => setRegion(REGION_AUTO)}
                 c={c}
+                style={styles.regionChip}
               />
-              {REGIONS.map((r) => (
+              {REGIONS.slice(0, 3).map((r) => (
                 <DialectChip
                   key={r}
                   label={r}
                   selected={r === region}
                   onPress={() => setRegion(r)}
                   c={c}
+                  style={styles.regionChip}
                 />
               ))}
-            </ScrollView>
+            </View>
+            <View style={styles.regionRow}>
+              {REGIONS.slice(3).map((r) => (
+                <DialectChip
+                  key={r}
+                  label={r}
+                  selected={r === region}
+                  onPress={() => setRegion(r)}
+                  c={c}
+                  style={styles.regionChip}
+                />
+              ))}
+            </View>
           </>
         )}
 
@@ -546,12 +557,14 @@ function DialectChip({
   onPress,
   c,
   bonus,
+  style,
 }: {
   label: string;
   selected: boolean;
   onPress: () => void;
   c: typeof palette.light;
   bonus?: boolean;
+  style?: StyleProp<ViewStyle>;
 }) {
   // 番外編は遊び枠としてアクセントを変える（ピンク系）
   const activeColor = bonus ? "#db2777" : c.accent;
@@ -564,6 +577,7 @@ function DialectChip({
           backgroundColor: selected ? activeColor : c.chipBg,
           borderColor: selected ? activeColor : c.border,
         },
+        style,
       ]}
     >
       <Text
@@ -615,11 +629,17 @@ const styles = StyleSheet.create({
   },
   sectionLabel: { fontSize: 13, fontWeight: "600", marginBottom: 10 },
   chipRow: { gap: 8, paddingBottom: 4, paddingRight: 4 },
+  regionRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
   chip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
+  },
+  regionChip: {
+    flex: 1,
+    paddingHorizontal: 4,
+    alignItems: "center",
   },
   card: {
     borderRadius: 16,
