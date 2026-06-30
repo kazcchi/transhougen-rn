@@ -34,6 +34,7 @@ const REGION_AUTO = "auto";
 const REGIONS = [
   "北海道",
   "東北",
+  "北陸",
   "関東",
   "中部",
   "近畿",
@@ -345,40 +346,36 @@ export default function App() {
             <Text style={[styles.sectionLabel, { color: c.subText }]}>
               地方（任意・選択したら精度が上がります）
             </Text>
-            <View style={styles.regionGrid}>
+            <View style={styles.regionRow}>
               <DialectChip
                 label="おまかせ"
                 selected={region === REGION_AUTO}
                 onPress={() => setRegion(REGION_AUTO)}
                 c={c}
-                style={styles.regionTall}
+                style={styles.regionChip}
               />
-              <View style={styles.regionCol}>
-                <View style={styles.regionRow}>
-                  {REGIONS.slice(0, 4).map((r) => (
-                    <DialectChip
-                      key={r}
-                      label={r}
-                      selected={r === region}
-                      onPress={() => setRegion(r)}
-                      c={c}
-                      style={styles.regionChip}
-                    />
-                  ))}
-                </View>
-                <View style={styles.regionRow}>
-                  {REGIONS.slice(4).map((r) => (
-                    <DialectChip
-                      key={r}
-                      label={r}
-                      selected={r === region}
-                      onPress={() => setRegion(r)}
-                      c={c}
-                      style={styles.regionChip}
-                    />
-                  ))}
-                </View>
-              </View>
+              {REGIONS.slice(0, 4).map((r) => (
+                <DialectChip
+                  key={r}
+                  label={r}
+                  selected={r === region}
+                  onPress={() => setRegion(r)}
+                  c={c}
+                  style={styles.regionChip}
+                />
+              ))}
+            </View>
+            <View style={styles.regionRow}>
+              {REGIONS.slice(4).map((r) => (
+                <DialectChip
+                  key={r}
+                  label={r}
+                  selected={r === region}
+                  onPress={() => setRegion(r)}
+                  c={c}
+                  style={styles.regionChip}
+                />
+              ))}
             </View>
           </>
         )}
@@ -633,10 +630,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: { fontSize: 13, fontWeight: "600", marginBottom: 10 },
   chipRow: { gap: 8, paddingBottom: 4, paddingRight: 4 },
-  regionGrid: { flexDirection: "row", gap: 8, marginBottom: 8 },
-  regionCol: { flex: 4, gap: 8 },
-  regionRow: { flexDirection: "row", gap: 8, flex: 1 },
-  regionTall: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 4 },
+  regionRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
   chip: {
     paddingHorizontal: 16,
     paddingVertical: 8,

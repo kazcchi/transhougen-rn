@@ -70,6 +70,7 @@ const DEFAULT_DIALECT = "大阪弁";
 const REGIONS = [
   "北海道",
   "東北",
+  "北陸",
   "関東",
   "中部",
   "近畿",
