@@ -63,14 +63,6 @@ const MAIN_DIALECTS = [
   "鹿児島弁",
 ] as const;
 
-// 番外編（ネタ・遊び枠）
-const BONUS_DIALECTS = [
-  "河内弁",
-  "お嬢様言葉",
-  "武士語",
-  "オネエ言葉",
-] as const;
-
 type Direction = "to_dialect" | "to_standard";
 
 // ===== カラーテーマ（ダーク/ライト） =====
@@ -297,48 +289,24 @@ export default function App() {
 
         {direction === "to_dialect" ? (
           <>
-            {/* 方言チップ：主要 */}
+            {/* 方言チップ：16方言を4×4の等幅グリッドで（スワイプなし） */}
             <Text style={[styles.sectionLabel, { color: c.subText }]}>
-              変換先（主要）
+              変換先
             </Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.chipRow}
-            >
-              {MAIN_DIALECTS.map((d) => (
-                <DialectChip
-                  key={d}
-                  label={d}
-                  selected={d === dialect}
-                  onPress={() => setDialect(d)}
-                  c={c}
-                />
-              ))}
-            </ScrollView>
-
-            {/* 方言チップ：番外編 */}
-            <Text
-              style={[styles.sectionLabel, { color: c.subText, marginTop: 14 }]}
-            >
-              番外編
-            </Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.chipRow}
-            >
-              {BONUS_DIALECTS.map((d) => (
-                <DialectChip
-                  key={d}
-                  label={d}
-                  selected={d === dialect}
-                  onPress={() => setDialect(d)}
-                  c={c}
-                  bonus
-                />
-              ))}
-            </ScrollView>
+            {[0, 1, 2, 3].map((row) => (
+              <View style={styles.regionRow} key={row}>
+                {MAIN_DIALECTS.slice(row * 4, row * 4 + 4).map((d) => (
+                  <DialectChip
+                    key={d}
+                    label={d}
+                    selected={d === dialect}
+                    onPress={() => setDialect(d)}
+                    c={c}
+                    style={styles.regionChip}
+                  />
+                ))}
+              </View>
+            ))}
           </>
         ) : (
           <>
@@ -557,18 +525,15 @@ function DialectChip({
   selected,
   onPress,
   c,
-  bonus,
   style,
 }: {
   label: string;
   selected: boolean;
   onPress: () => void;
   c: typeof palette.light;
-  bonus?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
-  // 番外編は遊び枠としてアクセントを変える（ピンク系）
-  const activeColor = bonus ? "#db2777" : c.accent;
+  const activeColor = c.accent;
   return (
     <Pressable
       onPress={onPress}
@@ -630,7 +595,6 @@ const styles = StyleSheet.create({
   },
   sectionLabel: { fontSize: 13, fontWeight: "600", marginBottom: 10 },
   regionLabel: { fontSize: 16, fontWeight: "700", marginBottom: 10, width: "100%" },
-  chipRow: { gap: 8, paddingBottom: 4, paddingRight: 4 },
   regionRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
   chip: {
     paddingHorizontal: 16,

@@ -27,10 +27,8 @@ const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1時間
 const rateStore = new Map();
 
 // 対応する変換先（フロントの選択肢と一致させる）
-// type: "dialect"（地域方言）/ "style"（文体・話し方）
-// hint: プロンプトに渡す補足（番外編の品質を安定させる）
+// type: "dialect"（地域方言）
 const DIALECTS = {
-  // ---- 主要（地域方言） ----
   "北海道弁": {type: "dialect"},
   "津軽弁": {type: "dialect"},
   "仙台弁": {type: "dialect"},
@@ -47,20 +45,6 @@ const DIALECTS = {
   "博多弁": {type: "dialect"},
   "熊本弁": {type: "dialect"},
   "鹿児島弁": {type: "dialect"},
-  // ---- 番外編 ----
-  "河内弁": {type: "dialect", hint: "ガラの強い威勢のいい言い回し"},
-  "お嬢様言葉": {
-    type: "style",
-    hint: "上品で丁寧な「〜ですわ」「〜ますの」調",
-  },
-  "武士語": {
-    type: "style",
-    hint: "時代劇の侍のような「〜でござる」「拙者」調",
-  },
-  "オネエ言葉": {
-    type: "style",
-    hint: "華やかで親しみやすい「〜なのよ」「〜だわ」調",
-  },
 };
 const DEFAULT_DIALECT = "大阪弁";
 
@@ -83,30 +67,18 @@ const REGIONS = [
 const MAX_AUDIO_BYTES = 2 * 1024 * 1024; // 約2MB（m4aで概ね30秒前後）
 
 /**
- * 変換方向と方言/文体からシステムプロンプトを組み立てる。
+ * 変換方向と方言からシステムプロンプトを組み立てる。
  * @param {string} direction "to_dialect"（標準語→方言）または
  *   "to_standard"（方言→標準語）
- * @param {string} dialect 対象の方言/文体名
+ * @param {string} dialect 対象の方言名
  * @param {string} [region] 方言→標準語のときの任意の地方ヒント
  * @return {string} OpenAI に渡すシステムプロンプト
  */
 function buildSystemPrompt(direction, dialect, region) {
-  const meta = DIALECTS[dialect] || {type: "dialect"};
-  const hint = meta.hint ? `（${meta.hint}）` : "";
-
   if (direction === "to_dialect") {
-    if (meta.type === "style") {
-      return [
-        "あなたは文体変換の専門家です。",
-        `入力された文章を、${dialect}${hint}の話し方に変換してください。`,
-        "意味は保ちつつ、その話し方らしい語尾・言い回しを自然に反映し、",
-        "誰かを揶揄するのではなく明るく楽しい雰囲気にしてください。",
-        "変換後の文章のみを出力し、解説や注釈は付けないでください。",
-      ].join("");
-    }
     return [
       "あなたは方言変換の専門家です。",
-      `入力された標準語の文章を、自然な${dialect}${hint}に変換してください。`,
+      `入力された標準語の文章を、自然な${dialect}に変換してください。`,
       "意味やニュアンスは保ちつつ、その地方の人が実際に話すような",
       "自然な言い回し・語尾・イントネーションを反映してください。",
       "変換後の文章のみを出力し、解説や注釈は付けないでください。",
