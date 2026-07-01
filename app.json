@@ -11,6 +11,12 @@
     ],
     "jsEngine": "hermes",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#4F46E5"
+    },
     "updates": {
       "fallbackToCacheTimeout": 0
     },
@@ -18,7 +24,20 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kazcchi.transhougen",
+      "buildNumber": "1"
+    },
+    "android": {
+      "package": "com.kazcchi.transhougen",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#4F46E5"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       [
