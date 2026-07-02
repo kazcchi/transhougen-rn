@@ -67,6 +67,28 @@ const REGIONS = [
 const MAX_AUDIO_BYTES = 2 * 1024 * 1024; // 約2MB（m4aで概ね30秒前後）
 
 /**
+ * 内部エラー（OpenAI の生メッセージ等）をユーザー向けの日本語に変換する。
+ * 課金・クォータ・APIキーなどの内部情報は一切ユーザーに露出させない。
+ * @param {*} e catch した例外
+ * @return {{status: number, message: string}} 返却用のHTTPステータスと文言
+ */
+function toUserFacingError(e) {
+  const status = e && typeof e.status === "number" ? e.status : null;
+  // 429（レート超過 / 残高不足）・401/403（認証）は
+  // いずれも「今は使えない」旨だけを伝え、原因の詳細は隠す。
+  if (status === 429 || status === 401 || status === 403) {
+    return {
+      status: 503,
+      message: "ただいまご利用いただけません。時間をおいてお試しください。",
+    };
+  }
+  return {
+    status: 500,
+    message: "変換に失敗しました。しばらくしてからお試しください。",
+  };
+}
+
+/**
  * 変換方向と方言からシステムプロンプトを組み立てる。
  * @param {string} direction "to_dialect"（標準語→方言）または
  *   "to_standard"（方言→標準語）
@@ -226,7 +248,8 @@ exports.dialectConverter = onRequest(
           });
         } catch (e) {
           logger.error("Error in dialectConverter:", e);
-          return res.status(500).json({error: e.message});
+          const err = toUserFacingError(e);
+          return res.status(err.status).json({error: err.message});
         }
       });
     },
@@ -281,7 +304,8 @@ exports.transcribeAudio = onRequest(
           return res.status(200).json({text: transcription.text || ""});
         } catch (e) {
           logger.error("Error in transcribeAudio:", e);
-          return res.status(500).json({error: e.message});
+          const err = toUserFacingError(e);
+          return res.status(err.status).json({error: err.message});
         }
       });
     },
