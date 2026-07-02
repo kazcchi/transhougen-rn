@@ -34,7 +34,11 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#4F46E5"
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -46,6 +50,12 @@
           "microphonePermission": "方言の音声入力（文字起こし）にマイクを使用します。"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "cd4bee93-d20b-4509-90b3-21ffcfbd94af"
+      }
+    },
+    "owner": "kazcchi"
   }
 }
