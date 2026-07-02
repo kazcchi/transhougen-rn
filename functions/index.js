@@ -7,6 +7,7 @@ const cors = require("cors")({origin: true});
 const OpenAI = require("openai");
 const {toFile} = require("openai");
 const busboy = require("busboy");
+const {detectRegionalUsage} = require("./regionalUsage");
 
 // OpenAI APIキーは Secret Manager で管理する（config() は廃止済み）
 // 登録: firebase functions:secrets:set OPENAI_API_KEY
@@ -94,15 +95,22 @@ function toUserFacingError(e) {
  *   "to_standard"（方言→標準語）
  * @param {string} dialect 対象の方言名
  * @param {string} [region] 方言→標準語のときの任意の地方ヒント
+ * @param {Array<object>} [regionalHits] 地域差メモ辞書のヒット
+ *   （語尾変換だけでなく意味のズレを補正するためのヒントとして注入する）
  * @return {string} OpenAI に渡すシステムプロンプト
  */
-function buildSystemPrompt(direction, dialect, region) {
+function buildSystemPrompt(direction, dialect, region, regionalHits = []) {
   if (direction === "to_dialect") {
+    const hints = regionalHits.map((h) =>
+      `この地域では「${h.standardMeaning}」を「${h.localUsage}」と言うことがあります。文脈に合う場合は自然に使ってください。`,
+    ).join("");
     return [
       "あなたは方言変換の専門家です。",
       `入力された標準語の文章を、自然な${dialect}に変換してください。`,
       "意味やニュアンスは保ちつつ、その地方の人が実際に話すような",
       "自然な言い回し・語尾・イントネーションを反映してください。",
+      "語尾だけでなく、その地域特有の言い回しや動詞の使い方も考慮してください。",
+      hints,
       "変換後の文章のみを出力し、解説や注釈は付けないでください。",
     ].join("");
   }
@@ -111,9 +119,14 @@ function buildSystemPrompt(direction, dialect, region) {
   const regionHint = REGIONS.includes(region) ?
     `特に${region}地方の方言として解釈し、` :
     "";
+  const hints = regionalHits.map((h) =>
+    `この地域では「${h.localUsage}」が「${h.standardMeaning}」の意味で使われることがあります。文脈が合う場合はその意味で標準語にしてください。`,
+  ).join("");
   return [
     "あなたは日本語変換の専門家です。",
     "入力された文章には方言や独特の言い回しが混ざっていることがあります。",
+    "同じ言葉でも地域によって意味や使い方が異なることがあるため、断定できない場合は文脈上自然な解釈を優先してください。",
+    hints,
     `${regionHint}意味やニュアンスを保ったまま自然な標準語に変換してください。`,
     "変換後の文章のみを出力し、解説や注釈は付けないでください。",
   ].join("");
@@ -228,6 +241,15 @@ exports.dialectConverter = onRequest(
             Object.prototype.hasOwnProperty.call(DIALECTS, dialect) ?
               dialect :
               DEFAULT_DIALECT;
+          // 地方ヒントは許可リスト内のみ。リスト外/未指定はおまかせ扱い
+          const selectedRegion = REGIONS.includes(region) ? region : undefined;
+
+          // 地域差メモ辞書と照合（例: 北海道の「手袋を履く」= はめる）。
+          // ヒット分だけプロンプトに注入し、レスポンスでもメモとして返す
+          const regionalHits = detectRegionalUsage(text, dir, {
+            dialect: selectedDialect,
+            region: selectedRegion,
+          });
 
           // OpenAI に問い合わせ
           const completion = await openai.chat.completions.create({
@@ -236,7 +258,8 @@ exports.dialectConverter = onRequest(
             messages: [
               {
                 role: "system",
-                content: buildSystemPrompt(dir, selectedDialect, region),
+                content: buildSystemPrompt(
+                    dir, selectedDialect, selectedRegion, regionalHits),
               },
               {role: "user", content: text},
             ],
@@ -245,6 +268,13 @@ exports.dialectConverter = onRequest(
 
           return res.status(200).json({
             result: completion.choices[0].message.content,
+            // 地域メモ（該当なしは空配列。旧クライアントは無視する）
+            regionalNotes: regionalHits.map((h) => ({
+              id: h.id,
+              localUsage: h.localUsage,
+              standardMeaning: h.standardMeaning,
+              note: h.note,
+            })),
           });
         } catch (e) {
           logger.error("Error in dialectConverter:", e);

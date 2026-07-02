@@ -65,6 +65,14 @@ const MAIN_DIALECTS = [
 
 type Direction = "to_dialect" | "to_standard";
 
+// API が返す地域メモ（該当する地域差表現があったときだけ入る）
+type RegionalNote = {
+  id: string;
+  localUsage: string;
+  standardMeaning: string;
+  note: string;
+};
+
 // ===== カラーテーマ（ダーク/ライト） =====
 const palette = {
   light: {
@@ -101,6 +109,7 @@ export default function App() {
 
   const [input, setInput] = useState("");
   const [converted, setConverted] = useState("");
+  const [regionalNotes, setRegionalNotes] = useState<RegionalNote[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [direction, setDirection] = useState<Direction>("to_standard");
@@ -131,6 +140,7 @@ export default function App() {
     if (!input.trim() || loading) return;
     setLoading(true);
     setConverted("");
+    setRegionalNotes([]);
     setError("");
     setCopied(false);
     try {
@@ -149,6 +159,7 @@ export default function App() {
         setError(data.error ?? "変換に失敗しました");
       } else {
         setConverted(data.result ?? "");
+        setRegionalNotes(Array.isArray(data.regionalNotes) ? data.regionalNotes : []);
       }
     } catch {
       setError("通信エラーが発生しました。電波状況をご確認ください。");
@@ -239,6 +250,7 @@ export default function App() {
     if (converted) {
       setInput(converted);
       setConverted("");
+      setRegionalNotes([]);
       setError("");
     }
   };
@@ -246,6 +258,7 @@ export default function App() {
   const handleClear = () => {
     setInput("");
     setConverted("");
+    setRegionalNotes([]);
     setError("");
     setCopied(false);
   };
@@ -481,6 +494,31 @@ export default function App() {
           </View>
         )}
 
+        {/* 地域メモ：該当する地域差表現があったときだけ表示する補助情報 */}
+        {!!converted && regionalNotes.length > 0 && (
+          <View
+            style={[
+              styles.noteCard,
+              { backgroundColor: c.chipBg, borderLeftColor: c.accent },
+            ]}
+          >
+            <Text style={[styles.noteTitle, { color: c.accent }]}>
+              💡 地域メモ
+            </Text>
+            {regionalNotes.map((n) => (
+              <Text key={n.id} style={[styles.noteText, { color: c.subText }]}>
+                {n.note}
+              </Text>
+            ))}
+          </View>
+        )}
+
+        {/* 免責の注意文 */}
+        <Text style={[styles.disclaimer, { color: c.subText }]}>
+          変換結果は、地域差・世代差・文脈により実際の表現と異なる場合があります。
+          同じ言葉でも地域によって意味や使い方が異なることがあります。参考表現としてご利用ください。
+        </Text>
+
         <View style={{ height: 40 }} />
       </ScrollView>
     </View>
@@ -659,4 +697,21 @@ const styles = StyleSheet.create({
   },
   convertBtnText: { fontSize: 17, fontWeight: "700" },
   swapBtn: { alignSelf: "center", marginTop: 14, padding: 6 },
+  // 地域メモ：結果カードより控えめに（角丸小さめ・左のアクセント線のみ）
+  noteCard: {
+    borderRadius: 12,
+    borderLeftWidth: 3,
+    padding: 14,
+    marginTop: 12,
+    gap: 6,
+  },
+  noteTitle: { fontSize: 13, fontWeight: "700" },
+  noteText: { fontSize: 14, lineHeight: 21 },
+  disclaimer: {
+    fontSize: 11,
+    lineHeight: 17,
+    textAlign: "center",
+    marginTop: 28,
+    paddingHorizontal: 8,
+  },
 });
