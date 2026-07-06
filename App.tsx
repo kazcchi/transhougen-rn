@@ -309,7 +309,7 @@ export default function App() {
             accessibilityRole="button"
             accessibilityLabel="このアプリについて（サポート・プライバシーポリシー）"
           >
-            <Text style={{ color: c.subText, fontSize: 20 }}>⚙️</Text>
+            <Text style={{ color: c.subText, fontSize: 22, fontWeight: "600" }}>ⓘ</Text>
           </Pressable>
           <Text style={[styles.title, { color: c.text }]}>TransHougen</Text>
           <Text style={[styles.subtitle, { color: c.subText }]}>
@@ -556,7 +556,7 @@ export default function App() {
       </ScrollView>
 
       {/* このアプリについて：Support / Privacy Policy / お問い合わせ導線
-          （App Review担当者が見つけやすいよう、ヘッダーの⚙️から常に開ける） */}
+          （App Review担当者が見つけやすいよう、ヘッダーのⓘから常に開ける） */}
       <Modal
         visible={aboutVisible}
         animationType="slide"
