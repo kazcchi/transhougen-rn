@@ -11,6 +11,8 @@ import {
   Platform,
   ActivityIndicator,
   StatusBar,
+  Modal,
+  Linking,
 } from "react-native";
 import type { StyleProp, ViewStyle } from "react-native";
 import * as Clipboard from "expo-clipboard";
@@ -27,6 +29,12 @@ const TRANSCRIBE_ENDPOINT =
   "https://us-central1-transhougen.cloudfunctions.net/transcribeAudio";
 
 const MAX_CHARS = 300;
+
+// App Store 申請要件：Support / Privacy Policy の導線（本体は公式サイト側で管理）
+const SUPPORT_URL = "https://www.murakamiworks.co.jp/apps/transhougen/support";
+const PRIVACY_URL = "https://www.murakamiworks.co.jp/apps/transhougen/privacy";
+const CONTACT_EMAIL = "info@murakamiworks.co.jp";
+const CONTACT_MAILTO = `mailto:${CONTACT_EMAIL}`;
 
 // 方言→標準語のときに任意で渡す地方ヒント（粗い8区分）。
 // 「おまかせ」は自動判別（地方未指定）。
@@ -118,6 +126,7 @@ export default function App() {
   const [copied, setCopied] = useState(false);
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
+  const [aboutVisible, setAboutVisible] = useState(false);
 
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
 
@@ -237,6 +246,18 @@ export default function App() {
     }
   };
 
+  // Support / Privacy Policy / お問い合わせ を安全に開く（iOS標準の Linking API を使用）
+  const openExternalUrl = async (url: string) => {
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      }
+    } catch {
+      // 開けなかった場合は何もしない（アプリの主機能に影響させない）
+    }
+  };
+
   const handleCopy = async () => {
     if (!converted) return;
     await Clipboard.setStringAsync(converted);
@@ -278,6 +299,18 @@ export default function App() {
       >
         {/* ヘッダー */}
         <View style={styles.header}>
+          <Pressable
+            onPress={() => setAboutVisible(true)}
+            style={({ pressed }: { pressed: boolean }) => [
+              styles.aboutBtn,
+              { opacity: pressed ? 0.6 : 1 },
+            ]}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="このアプリについて（サポート・プライバシーポリシー）"
+          >
+            <Text style={{ color: c.subText, fontSize: 20 }}>⚙️</Text>
+          </Pressable>
           <Text style={[styles.title, { color: c.text }]}>TransHougen</Text>
           <Text style={[styles.subtitle, { color: c.subText }]}>
             方言⇄標準語 変換
@@ -521,6 +554,82 @@ export default function App() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* このアプリについて：Support / Privacy Policy / お問い合わせ導線
+          （App Review担当者が見つけやすいよう、ヘッダーの⚙️から常に開ける） */}
+      <Modal
+        visible={aboutVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setAboutVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: c.card }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: c.text }]}>
+                このアプリについて
+              </Text>
+              <Pressable
+                onPress={() => setAboutVisible(false)}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="閉じる"
+              >
+                <Text style={{ color: c.subText, fontSize: 20 }}>✕</Text>
+              </Pressable>
+            </View>
+
+            <Pressable
+              onPress={() => openExternalUrl(SUPPORT_URL)}
+              style={({ pressed }: { pressed: boolean }) => [
+                styles.menuRow,
+                { borderBottomColor: c.border, opacity: pressed ? 0.6 : 1 },
+              ]}
+            >
+              <Text style={[styles.menuLabel, { color: c.text }]}>サポート</Text>
+              <Text style={[styles.menuSub, { color: c.subText }]}>
+                不具合報告・お問い合わせはこちら
+              </Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => openExternalUrl(PRIVACY_URL)}
+              style={({ pressed }: { pressed: boolean }) => [
+                styles.menuRow,
+                { borderBottomColor: c.border, opacity: pressed ? 0.6 : 1 },
+              ]}
+            >
+              <Text style={[styles.menuLabel, { color: c.text }]}>
+                プライバシーポリシー
+              </Text>
+              <Text style={[styles.menuSub, { color: c.subText }]}>
+                利用者情報の取り扱いについて
+              </Text>
+            </Pressable>
+
+            {/* メール問い合わせ導線：送信元アドレス等を取得しうるため、
+                すぐ上にプライバシーポリシーへのリンクを配置している */}
+            <Pressable
+              onPress={() => openExternalUrl(CONTACT_MAILTO)}
+              style={({ pressed }: { pressed: boolean }) => [
+                styles.menuRow,
+                { borderBottomColor: c.border, opacity: pressed ? 0.6 : 1 },
+              ]}
+            >
+              <Text style={[styles.menuLabel, { color: c.text }]}>
+                お問い合わせ（メール）
+              </Text>
+              <Text style={[styles.menuSub, { color: c.subText }]}>
+                {CONTACT_EMAIL}
+              </Text>
+            </Pressable>
+
+            <Text style={[styles.modalFooter, { color: c.subText }]}>
+              TransHougen{"\n"}運営: MURAKAMI WORKS,LLC
+            </Text>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -617,6 +726,13 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   header: { alignItems: "center", marginBottom: 20 },
+  aboutBtn: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    padding: 8,
+    zIndex: 1,
+  },
   title: { fontSize: 28, fontWeight: "800", letterSpacing: 0.5 },
   subtitle: { fontSize: 14, marginTop: 4 },
   segment: {
@@ -713,5 +829,39 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 28,
     paddingHorizontal: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  modalCard: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: Platform.OS === "ios" ? 36 : 24,
+    maxWidth: 600,
+    width: "100%",
+    alignSelf: "center",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  modalTitle: { fontSize: 17, fontWeight: "700" },
+  menuRow: {
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 4,
+  },
+  menuLabel: { fontSize: 16, fontWeight: "600" },
+  menuSub: { fontSize: 13 },
+  modalFooter: {
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: "center",
+    marginTop: 18,
   },
 });
