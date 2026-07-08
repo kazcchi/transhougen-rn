@@ -7,7 +7,6 @@ import {
   View,
   Text,
   Pressable,
-  useColorScheme,
   Platform,
   ActivityIndicator,
   StatusBar,
@@ -112,8 +111,9 @@ const palette = {
 };
 
 export default function App() {
-  const scheme = useColorScheme();
-  const c = scheme === "dark" ? palette.dark : palette.light;
+  // 初回リリースはブランド（ダークネイビー×紫）に合わせてダークUI固定。
+  // OS のライト/ダーク設定には依存しない。
+  const c = palette.dark;
 
   const [input, setInput] = useState("");
   const [converted, setConverted] = useState("");
@@ -291,7 +291,7 @@ export default function App() {
 
   return (
     <View style={[styles.screen, { backgroundColor: c.bg }]}>
-      <StatusBar barStyle={scheme === "dark" ? "light-content" : "dark-content"} />
+      <StatusBar barStyle="light-content" />
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={styles.scrollContent}

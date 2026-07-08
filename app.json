@@ -10,7 +10,7 @@
       "web"
     ],
     "jsEngine": "hermes",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
     "icon": "./assets/icon.png",
     "splash": {
       "image": "./assets/splash.png",
@@ -25,8 +25,11 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.kazcchi.transhougen",
-      "buildNumber": "1"
+      "bundleIdentifier": "com.murakamiworks.transhougen",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.kazcchi.transhougen",
@@ -47,7 +50,7 @@
       [
         "expo-audio",
         {
-          "microphonePermission": "方言の音声入力を行い、標準語または方言への変換に使用します。"
+          "microphonePermission": "音声入力で文章を入力し、方言変換に利用するためにマイクを使用します。"
         }
       ]
     ],
