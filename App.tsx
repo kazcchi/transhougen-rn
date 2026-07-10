@@ -21,6 +21,7 @@ import {
   requestRecordingPermissionsAsync,
   setAudioModeAsync,
 } from "expo-audio";
+import { getAppCheckToken } from "./appCheck";
 
 const ENDPOINT =
   "https://us-central1-transhougen.cloudfunctions.net/dialectConverter";
@@ -158,9 +159,13 @@ export default function App() {
       if (direction === "to_standard" && region !== REGION_AUTO) {
         body.region = region;
       }
+      const appCheckToken = await getAppCheckToken();
       const res = await fetch(ENDPOINT, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(appCheckToken ? { "X-Firebase-AppCheck": appCheckToken } : {}),
+        },
         body: JSON.stringify(body),
       });
       const data = await res.json();
@@ -227,8 +232,13 @@ export default function App() {
         } as unknown as Blob);
       }
 
+      const appCheckToken = await getAppCheckToken();
       const res = await fetch(TRANSCRIBE_ENDPOINT, {
         method: "POST",
+        // FormData 送信のため Content-Type は手動設定しない
+        ...(appCheckToken
+          ? { headers: { "X-Firebase-AppCheck": appCheckToken } }
+          : {}),
         body: formData,
       });
       const data = await res.json();

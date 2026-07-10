@@ -1,7 +1,6 @@
 {
   "projects": {
-    "default": "transhougen",
-    "> default ": "transhougen"
+    "default": "transhougen"
   },
   "targets": {},
   "etags": {}

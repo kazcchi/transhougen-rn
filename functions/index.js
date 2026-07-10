@@ -8,6 +8,12 @@ const OpenAI = require("openai");
 const {toFile} = require("openai");
 const busboy = require("busboy");
 const {detectRegionalUsage} = require("./regionalUsage");
+const {initializeApp} = require("firebase-admin/app");
+const {defineBoolean} = require("firebase-functions/params");
+const {verifyAppCheckToken} = require("./appCheck");
+
+// App Check トークン検証（firebase-admin）用
+initializeApp();
 
 // OpenAI APIキーは Secret Manager で管理する（config() は廃止済み）
 // 登録: firebase functions:secrets:set OPENAI_API_KEY
@@ -26,6 +32,11 @@ const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1時間
 // 注: Cloud Functions はインスタンスが複数/再起動しうるため厳密ではない。
 // 本格的な制限は App Check / Firestore で別途実施する。
 const rateStore = new Map();
+
+// App Check の強制化フラグ。false（既定）は監視モード：
+// トークンの有無・有効性をログに残すだけで、リクエストは拒否しない。
+// 強制化は functions/.env で APP_CHECK_ENFORCE=true にして再デプロイする。
+const appCheckEnforce = defineBoolean("APP_CHECK_ENFORCE", {default: false});
 
 // 対応する変換先（フロントの選択肢と一致させる）
 // type: "dialect"（地域方言）
@@ -209,6 +220,15 @@ exports.dialectConverter = onRequest(
     // CORS対応
       cors(req, res, async () => {
         try {
+          // --- App Check（段階適用中: 監視モード→強制化）---
+          const appCheckStatus = await verifyAppCheckToken(req);
+          logger.info("appCheck", {fn: "dialectConverter", status: appCheckStatus});
+          if (appCheckEnforce.value() && appCheckStatus !== "valid") {
+            return res.status(401).json({
+              error: "不正なリクエストです。アプリを再読み込みしてください。",
+            });
+          }
+
           // OpenAI クライアント（キーは実行時に Secret から取得）
           const openai = new OpenAI({apiKey: openaiApiKey.value()});
 
@@ -296,6 +316,15 @@ exports.transcribeAudio = onRequest(
         try {
           if (req.method !== "POST") {
             return res.status(405).json({error: "POSTメソッドを使用してください"});
+          }
+
+          // --- App Check（段階適用中: 監視モード→強制化）---
+          const appCheckStatus = await verifyAppCheckToken(req);
+          logger.info("appCheck", {fn: "transcribeAudio", status: appCheckStatus});
+          if (appCheckEnforce.value() && appCheckStatus !== "valid") {
+            return res.status(401).json({
+              error: "不正なリクエストです。アプリを再読み込みしてください。",
+            });
           }
 
           // --- レート制限（変換と同じストアを共用）---
